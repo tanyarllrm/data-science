@@ -21,6 +21,7 @@ fontsize: 11pt
 ```{r}
 library('tidyverse')
 library('gridExtra')
+library('ISLR')
 ```
 
 ## Question 1: Linear Regression
@@ -135,13 +136,36 @@ knitr::include_graphics('q2-2.jpg')
 
 You will use horsepower as input variable and miles per gallon (mpg) as output:
 
+```{r}
+db3 <- select(Auto,  c('horsepower', 'mpg'))
+head(db3)
+```
+
 1. Plot the scatterplot between `mpg` ($Y$) and `horsepower` ($X$).
     - Is the relationship positive or negative? Does mpg increase or reduce as horsepower increases?
     - Is the relationship linear?
+    
+```{r}
+ggplot(data = Auto) + 
+  geom_point(aes(x = horsepower, y = mpg)) 
+```
+
+Clearly, as seen in the plot, as horsepower increases, mpg decreases; therefore the relationship between mpg and horsepower is negative.  The relationship is also not linear.  As horsepower increases, the change between mpg gets smaller and smaller, following more closely to logarithmic behaviour.  
+
 2. Plot the scatterplot between `log(mpg)` and `log(horsepower)`.
     - Is the relationship positive or negative?
     - Is the relationship linear?
+    
+```{r}
+ggplot(data = Auto) + 
+  geom_point(aes(x = log(horsepower), y = log(mpg))) 
+```
+  
+Similarily to the previous plot, as horsepower increases, mpg decreases; therefore the relationship between mpg and horsepower is negative.  Now that the log is taken fo both horsepower and mpg values, the relationship is now following linear behaviour.
+    
 3. Which of the two versions is better for linear regression?
+
+Since the scatterplot of the log of horsepower and log of mpg follow a linear behaviour and scatterplot of just horsepower and mpg follow non linear behaviour, then it can be concluded that the second version is better for linear regression.  
 
 ### 3.2. Fill in the code
 
@@ -157,20 +181,111 @@ $$\theta := \theta + \frac \alpha N X^T(Y - \theta X)$$
 
 where $\alpha$ is the step size (or learning rate) and $(Y - \theta X)^T X$ is the gradient. At each step it calculates the gradient of the loss and adjusts the parameter set accordingly.
 
+```{r}
+GDA <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  while(imprv > epsilon & i < max_iter){
+    i <- i + 1
+    grad  <- (t(x) %*% (y-x %*% theta))
+    theta <- theta + (alpha / N) * grad
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+  }
+  if (i==max_iter){print(paste0("maximum interation ", max_iter, " was reached"))} else {
+    print(paste0("Finished in ", i, " iterations"))
+  }
+  
+  return(theta)
+}
+
+plot_line <- function(theta) {
+  ggplot(Auto, aes(x=log(horsepower),y=log(mpg))) + 
+    geom_point(alpha=.7) + 
+    geom_abline(slope = theta[2], intercept = theta[1], colour='firebrick') + 
+    ggtitle(paste0('int: ', round(theta[1],2), ', slope: ', round(theta[2],2)))
+}
+```
+
 ### 3.3. Run GDA
 
 
 1. Run the code with the above parameters. How many iterations did it take to estimate the parameters?
+
+```{r}
+x <- log(Auto$horsepower)
+y <- log(Auto$mpg)
+theta0 <- c(1,1)
+theta   <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-5)
+plot_line(theta)
+```
+The above estimation of parameters with gradient descent took 3193 iterations.
+
 2. Reduce epsilon to `1e-6`, set `alpha=0.05` run the code. 
     - How many iterations did it take to estimate the parameters?
     - Does the result improve? Why or why not?
+    
+```{r}
+theta0 <- c(1,1)
+theta   <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-6)
+plot_line(theta)
+```
+The above estimation of parameters with gradient descent took 7531 iterations.  The resulting linear estimation is an improvement on the previous case due to the decrease in epsilon value.  The while loop to stop gradient descent only ends once the improvement is less than epsilon.  By decreasing epsilon, it means the final values are closer to optimal estimation.  
+
 3. Reduce alpha to `alpha=0.01`
    - How many iterations did it take?
    - Did the resulting line change? Why or why not?
+   
+```{r}
+theta0 <- c(1,1)
+theta   <- GDA(x, y, theta0, alpha = 0.01, epsilon = 1e-6)
+plot_line(theta)
+```
+The above estimation of parameters with gradient descent took 22490 iterations.  The resulting line did change when decreasing alpha.  As alpha, which represents the learning rate, decreases, then the estimation is slower to reaching the optimal location.  This also makes sense why the estimation took a lot more iterations, as the learning rate and hence improvement towards optimal is a lot slower.
+
 4. Set alpha back to `alpha=0.05` and try `theta0=c(1,1)` vs. `theta0=c(1,-1)`:
    - How many iterations did it take? Which is less than the other?
    - Why starting with a negative slope have this effect?
+   
+```{r}
+theta0 <- c(1,1)
+theta   <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-6)
+plot_q3_3_4_1 <- plot_line(theta)
+theta0 <- c(1,-1)
+theta   <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-6)
+plot_q3_3_4_2 <- plot_line(theta)
+
+grid.arrange(plot_q3_3_4_1,plot_q3_3_4_2, ncol=2)
+```
+The plot on the left took 7531 iterations and the plot on the right took 7265 iterations to estimate the parameters with gradient descent. The plot that started with initial theta with negative slope estimated the parameters faster; this is due to the fact the relationship in the data has a negative slope.  Since the sign of the data is negative and the sign of the initial theta slope was negative, then it was able to estimate the parameters faster. 
+
 5. Reduce epsilon to `epsilon = 1e-8` and try `alpha=0.01`, `alpha=0.05` and `alpha=0.1`.
    - What effect does alpha have on iterations and resulting fitted line?
 
+```{r}
+theta0 <- c(1,1)
+theta   <- GDA(x, y, theta0, alpha = 0.01, epsilon = 1e-8)
+plot_q3_3_5_1 <- plot_line(theta)
+theta   <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-8)
+plot_q3_3_5_2 <- plot_line(theta)
 
+grid.arrange(plot_q3_3_5_1,plot_q3_3_5_2, ncol=2)
+```
+
+For the plot on the left, it had a slower learning rate and took 25000 iterations to estimate the parameters.  The plot on the right had a faster learning rate and took 16207 iterations.  The plot where alpha was the highest of 0.1 was not able to be computed because it resulted in the cost increasing.  This is due to the face that the learning rate is so high that the estimation is going right past the optimal location and increasing in the opposite direction.  As alpha decreases, the learning rate is slower and there are more iterations taken before it completes the parameter estimations
+
+[NOW TALK ABOUT WHAT HAPPENS IN TERMS OF UNDERFITTING AND ALPHA]
