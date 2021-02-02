@@ -18,7 +18,7 @@ fontsize: 11pt
 <!-- You can check templates from this website and change html theme: https://www.datadreaming.org/post/r-markdown-theme-gallery/ -->
 <!-- It won't affect the PDF or Word. -->
 
-```{r}
+```{r, message=FALSE}
 library('tidyverse')
 library('gridExtra')
 library('ISLR')
@@ -286,6 +286,101 @@ plot_q3_3_5_2 <- plot_line(theta)
 grid.arrange(plot_q3_3_5_1,plot_q3_3_5_2, ncol=2)
 ```
 
-For the plot on the left, it had a slower learning rate and took 25000 iterations to estimate the parameters.  The plot on the right had a faster learning rate and took 16207 iterations.  The plot where alpha was the highest of 0.1 was not able to be computed because it resulted in the cost increasing.  This is due to the face that the learning rate is so high that the estimation is going right past the optimal location and increasing in the opposite direction.  As alpha decreases, the learning rate is slower and there are more iterations taken before it completes the parameter estimations
+For the plot on the left, it had a slower learning rate and took 25000 iterations to estimate the parameters.  The plot on the right had a faster learning rate and took 16207 iterations.  The plot where alpha was the highest of 0.1 was not able to be computed because it resulted in the cost increasing.  This is due to the face that the learning rate is so high that the estimation is going right past the optimal location and increasing in the opposite direction.  As alpha decreases, the learning rate is slower and there are more iterations taken before it completes the parameter estimations.  In terms of underfitting / overfitting, as the number of iterations increase, the model becomes closer to overfitted.  Therefore, as alpha (learning rate) decreases, the iterations increase and the model becomes more overfit.  As alpha increases, the iterations decrease and the model becomes more underfit.
 
-[NOW TALK ABOUT WHAT HAPPENS IN TERMS OF UNDERFITTING AND ALPHA]
+\pagebreak
+
+## Question 4. BGD vs SGD
+
+### 4.1. Code for BGD and SGD
+
+```{r}
+BGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  while(imprv > epsilon & i < max_iter){cost
+    i <- i + 1
+    grad <- 0
+    for(j in 1:length(y)){
+      grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+      grad <- grad + grad_chng 
+    }
+    theta <- theta + (alpha / N) * grad
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+  }
+  print(paste0("Stopped in ", i, " iterations"))
+  
+  cost <- cost[-1]
+  return(list(theta,cost))
+}
+
+SGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  while(imprv > epsilon & i < max_iter){cost
+    i <- i + 1
+    for(j in 1:length(y)){
+      grad <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+      theta <- theta + (alpha / N) * grad
+    }
+    
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+  }
+  print(paste0("Stopped in ", i, " iterations"))
+  
+  cost <- cost[-1]
+  return(list(theta,cost))
+}
+```
+
+### 4.2. Comparing BGD and SGD Results
+
+```{r}
+x <- log(Auto$horsepower)
+y <- log(Auto$mpg)
+resBGD <- BGD(x, y, c(1, -1), alpha = 0.005, epsilon = 1e-5, max_iter = 10)
+resSGD <- SGD(x, y, c(1, -1), alpha = 0.005, epsilon = 1e-5, max_iter = 10)
+```
+
+```{r}
+thetaBGD <- resBGD[[1]]
+lossBGD  <- resBGD[[2]]
+thetaSGD <- resSGD[[1]]
+lossSGD  <- resSGD[[2]]
+ggplot() + 
+  geom_point(aes(x=1:length(lossBGD), y=lossBGD), colour="orange") +
+  geom_point(aes(x=1:length(lossSGD), y=lossSGD), colour="blue") +
+  labs(x='iteration', y="loss")
+```
+
+In the plot, the blue points represent loss from SGD and the orange points represent loss from BGD.  The losses are quite similar; however, the algorithm that yielded the lower loss was BGD.  This makes sense because SGD is only considering one data point at a time when updating theta; on the other hand, BGD is considering all data points at once then updating theta values.  
