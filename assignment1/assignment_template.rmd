@@ -345,18 +345,22 @@ SGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
   imprv <- 1e10
   cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
   delta <- 1
-  while(imprv > epsilon & i < max_iter){cost
-    i <- i + 1
-    for(j in 1:length(y)){
-      grad <- x[j, ] * c(y[j]-x[j, ] %*% theta)
-      theta <- theta + (alpha / N) * grad
-    }
+  grad <- 0
+  
+  length(y)
+  for(j in 1:max_iter){
+    grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+    grad <- grad + grad_chng 
+    theta <- theta + (alpha / N) * grad
     
     cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
     imprv <- abs(cost[i+1] - cost[i])
-    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+    
+
   }
-  print(paste0("Stopped in ", i, " iterations"))
+  
+   
+  print(paste0("Stopped in ", max_iter, " iterations"))
   
   cost <- cost[-1]
   return(list(theta,cost))
@@ -383,4 +387,4 @@ ggplot() +
   labs(x='iteration', y="loss")
 ```
 
-In the plot, the blue points represent loss from SGD and the orange points represent loss from BGD.  The losses are quite similar; however, the algorithm that yielded the lower loss was BGD.  This makes sense because SGD is only considering one data point at a time when updating theta; on the other hand, BGD is considering all data points at once then updating theta values.  
+In the plot, the blue points represent loss from SGD and the orange points represent loss from BGD.  Looking closer at the SGD losses, the losses are still decreasing but at a much slower rate compared to BGD.  In addition, the SGD losses are much higher than BGD.  This makes sense because SGD is only considering one data point at a time when updating theta; on the other hand, BGD is considering all data points at once then updating theta values.  
