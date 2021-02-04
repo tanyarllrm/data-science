@@ -125,6 +125,7 @@ age_height <- read.csv('age_height.csv')
 age_height
 knitr::include_graphics('q2-1.jpg')
 knitr::include_graphics('q2-2.jpg')
+knitr::include_graphics('q2-3.jpg')
 ```
 
 \pagebreak
