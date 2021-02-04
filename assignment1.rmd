@@ -1,6 +1,6 @@
 ---
 title: 'Lab Report 1'
-author: "Tanya Ralliaram"
+author: "By: Abhishek Shah, Ravi Seth, Tanya Ralliaram"
 geometry: margin=.75in
 output:
   pdf_document: default
@@ -13,13 +13,27 @@ header-includes:
 - \usepackage{color}
 graphics: yes
 fontsize: 11pt
+always_allow_html: true
 ---
 
 <!-- You can check templates from this website and change html theme: https://www.datadreaming.org/post/r-markdown-theme-gallery/ -->
 <!-- It won't affect the PDF or Word. -->
 
+```{r}
+# Insert necessary packages
+library('tidyverse')
+library('gridExtra')
+library('ISLR')
+library('plotly')
+library('caret')
+```
 
 ## Question 1: Linear Regression
+```{r}
+# Read in the data
+spotify <- read.csv('data/spotify_songs.csv')
+dim(spotify)
+```
 
 
 ### 1.1. (10 pts) 
@@ -27,30 +41,65 @@ fontsize: 11pt
 Give basic insights into your numeric variable you have picked as output variable using one categorical variable you selected. 
 
 - What are the min / max values and median of the output variable, $Y$?
+```{r}
+spotify1_1 = spotify[,c('energy','loudness','tempo','playlist_genre','danceability')]
+# min
+min(spotify1_1['danceability'])
+# max
+max(spotify1_1['danceability'])
+# median
+median(spotify1_1$danceability, na.rm=TRUE)
+```
 - What is median of the output value among different classes of the categorical variable you picked? You must use `group_by` and `summarize` functions.
+```{r}
+# median output among different classes
+group_by(spotify1_1, playlist_genre) %>% 
+  summarise(median(danceability))
+```
+
 
 ### 1.2. (10 pts) 
 
 Visualize the variables you selected.
 
 - Draw histogram of the numeric variables you selected.
+```{r}
+# Histogram plot of numeric features
+
+energy <- ggplot(data = spotify1_1) +
+  geom_histogram(aes(x = energy), bins=20) +
+  ggtitle("Histogram of Energy")
+
+loudness <- ggplot(data = spotify1_1) +
+  geom_histogram(aes(x = loudness), bins=20) + 
+  ggtitle("Histogram of Loudness")
+
+tempo <- ggplot(data = spotify1_1) +
+  geom_histogram(aes(x = tempo), bins=20) + 
+  ggtitle("Histogram of Tempo")
+
+grid.arrange(energy, tempo, loudness, ncol=2)
+```
+
 - Draw distribution of the output variable $Y$ with respect to the different classes of your categorical variable. The plot must somehow show the distributional differences among different classes. You can use boxplot, histogram, or other visuals (e.g. density ringes).
+```{r}
+# Boxplot of categorical feature classes
+ggplot(data = spotify1_1) +
+  geom_boxplot(aes(x = playlist_genre, y=danceability, colour=playlist_genre)) +
+  ggtitle("Boxplot of Categorical Variable")
+```
 
 - Draw scatter plot between one of your numeric inputs and the output variable. Discuss whether the plot indicate a relation, if it is linear, if there are outliers? Feel free to remove the outlier. Feel free to transform the data.
-
 ```{r}
-library('tidyverse')
-spotify <- read.csv('data/spotify_songs.csv')
+# Plot input variable vs output variable
+ggplot(data = spotify1_1) +
+  geom_point(aes(x = loudness, y=danceability))
+
+# Remove outliers
+spotify1_2<-spotify1_1[(spotify1_1$loudness>-25),]
 ```
 
-```{r}
-spotify <- select(spotify,  c('track_id','energy', 'loudness', 'tempo', 'playlist_genre', 'danceability'))
-rmarkdown::paged_table(spotify)
-```
-
-```{r}
-dim(spotify)
-```
+There does not seem to be any linear relation between the input variable (loudness) and the output variable (danceability). In terms of removing outliers, loudness values < -25 were dropped.
 
 ### 1.3. (15 pts) 
 
@@ -72,7 +121,7 @@ Our linear regression model for one numeric input variable, tempo, is:
 $$D_i = \beta_0 + \beta_1 Tempo_i+\epsilon_i$$
 To fit the line:
 ```{r}
-spotifyfit1 <- lm(danceability ~ tempo, data = spotify)
+spotifyfit1 <- lm(danceability ~ tempo, data = spotify1_2)
 spotifyfit1
 ```
 
@@ -86,10 +135,11 @@ Based on the p-value, tempo is a significant factor in predicting danceability.
 Plot the model:
 ```{r}
 preds <- predict(spotifyfit1)
-ggplot(spotify, aes(x=tempo, y=danceability)) + 
+ggplot(spotify1_2, aes(x=tempo, y=danceability)) + 
   geom_point(alpha=.2, size=2) + 
   geom_line(aes(y=preds), colour="red")
 ```
+
 From the graph, we can see that there is a slight correlation between the input
 variable 'tempo' and output 'danceability'. Generally speaking, until a tempo of
 around 100-125 bpm, danceability appears to increase as tempo increases. After this,
@@ -107,7 +157,7 @@ Our multiple linear regression model is:
 $$D_i \sim \beta_0 + \beta_1 Tempo_i + \beta_2 Energy_i + \beta_3 Loud_i +\epsilon_i$$
 We will fit the model and view the summary:
 ```{r}
-spotifyfit2 <- lm(danceability ~ tempo + energy + loudness, data = spotify)
+spotifyfit2 <- lm(danceability ~ tempo + energy + loudness, data = spotify1_2)
 summary(spotifyfit2)
 ```
 
@@ -122,12 +172,10 @@ sigma(spotifyfit2)
 Adding two more numerical variables slightly improved the MSE.
 
 ```{r, warning=F, message=F}
-library('plotly')
 preds <- predict(spotifyfit2)
-g1 <- ggplot(spotify, aes(x=tempo, y=danceability)) + 
+g1 <- ggplot(spotify1_2, aes(x=tempo, y=danceability)) + 
   geom_point(alpha=.3, size=1) + 
   geom_line(aes(y=preds), colour="blue")
-
 ggplotly(g1)
 ```
 
@@ -144,11 +192,11 @@ $$D_i \sim \beta_0 + \beta_1 Tempo_i + \beta_2 Energy_i + \beta_3 Loud_i + \beta
 The variable playlist_genre is a string, but we will ensure it is treated as a factor anyways
 to avoid any errors.
 ```{r}
-spotify$playlist_genre <- as.factor(spotify$playlist_genre)
+spotify1_2$playlist_genre <- as.factor(spotify1_2$playlist_genre)
 ```
 
 ```{r}
-spotifyfit3 <- lm(danceability ~ tempo + energy + loudness + playlist_genre, data = spotify)
+spotifyfit3 <- lm(danceability ~ tempo + energy + loudness + playlist_genre, data = spotify1_2)
 summary(spotifyfit3)$coefficients
 ```
 
@@ -159,9 +207,8 @@ alone are not significant factors in danceability.
 Additionally, after adding this new variable, the p-value for tempo is very low.
 
 ```{r}
-library('ggExtra')
 preds <- predict(spotifyfit3)
-ggplot(spotify, aes(x=tempo, y=danceability, colour=playlist_genre)) + 
+ggplot(spotify1_2, aes(x=tempo, y=danceability, colour=playlist_genre)) + 
   geom_point(alpha=.2, size=1) + 
   geom_line(aes(y=preds), colour="red")
 ```
@@ -178,7 +225,7 @@ the additional numerical variables.
 4. Which model you fit is the best in predicting the output variable? Which one is the second and third best? Rank the models based on their performance.
 
 In order of performance from best to worst, they are:
-fit3 > fit 2 > fit 1
+fit3 > fit2 > fit1
 
 ### 1.4. (15 pts) 
 
@@ -192,27 +239,21 @@ In this section, you will do the same you did in 1.3, but this time you will fir
 
 ```{r}
 set.seed(1)
-train_size <- floor(0.8*nrow(spotify))
-train_inds <- sample(1:nrow(spotify), size = train_size)
-test_inds  <- setdiff(1:nrow(spotify), train_inds)
-
-train <- spotify[ train_inds , ] 
-test  <- spotify[ test_inds , ]
-
+train_size <- floor(0.8*nrow(spotify1_2))
+train_inds <- sample(1:nrow(spotify1_2), size = train_size)
+test_inds  <- setdiff(1:nrow(spotify1_2), train_inds)
+train <- spotify1_2[ train_inds , ] 
+test  <- spotify1_2[ test_inds , ]
 cat('train size:', nrow(train), '\ntest size:', nrow(test))
 ```
 
 ```{r}
-library('caret')
 trainfit1 <- lm(danceability ~ tempo, data = train)
 #summary(trainfit1)$coefficients
-
 trainfit2 <- lm(danceability ~ tempo + energy + loudness, data = train)
 #summary(trainfit2)$coefficients
-
 trainfit3 <- lm(danceability ~ tempo + energy + loudness + playlist_genre, data = train)
 #summary(trainfit3)$coefficients
-
 ```
 
 Apply to the test data:
@@ -226,7 +267,6 @@ preds3 <- predict(trainfit3, newdata=test)
 rmse1 <- RMSE(preds1, test$danceability)
 rmse2 <- RMSE(preds2, test$danceability)
 rmse3 <- RMSE(preds3, test$danceability)
-
 rmses <- c(rmse1,rmse2,rmse3)
 rmses
 sigma(spotifyfit1)
@@ -245,31 +285,51 @@ but the new model 3 had a slightly lower MSE.
 
 In case you want to take a picture (screenshot) of your notebook (tablet), you can use the below lines to embed the image to the output PDF file:
 
-
 ```{r}
-#knitr::include_graphics('conspiracy.jpg')
+
+knitr::include_graphics('q2-1.jpg')
+knitr::include_graphics('q2-2.jpg')
+knitr::include_graphics('q2-3.jpg')
 ```
-
-
-
-
 
 \pagebreak
 
 ## Question 3. Gradient Descent Algorithm
 
 
-### 3.1. Get familiar
-
 You will use horsepower as input variable and miles per gallon (mpg) as output:
+
+```{r}
+db3 <- select(Auto,  c('horsepower', 'mpg'))
+head(db3)
+```
 
 1. Plot the scatterplot between `mpg` ($Y$) and `horsepower` ($X$).
     - Is the relationship positive or negative? Does mpg increase or reduce as horsepower increases?
     - Is the relationship linear?
+    
+```{r}
+ggplot(data = Auto) + 
+  geom_point(aes(x = horsepower, y = mpg)) 
+```
+
+Clearly, as seen in the plot, as horsepower increases, mpg decreases; therefore the relationship between mpg and horsepower is negative.  The relationship is also not linear.  As horsepower increases, the change between mpg gets smaller and smaller, following more closely to logarithmic behaviour.  
+
 2. Plot the scatterplot between `log(mpg)` and `log(horsepower)`.
     - Is the relationship positive or negative?
     - Is the relationship linear?
+    
+```{r}
+ggplot(data = Auto) + 
+  geom_point(aes(x = log(horsepower), y = log(mpg))) 
+```
+  
+Similarily to the previous plot, as horsepower increases, mpg decreases; therefore the relationship between mpg and horsepower is negative.  Now that the log is taken fo both horsepower and mpg values, the relationship is now following linear behaviour.
+    
 3. Which of the two versions is better for linear regression?
+
+Since the scatterplot of the log of horsepower and log of mpg follow a linear behaviour and scatterplot of just horsepower and mpg follow non linear behaviour, then it can be concluded that the second version is better for linear regression.  
+
 
 ### 3.2. Fill in the code
 
@@ -284,21 +344,200 @@ The algorithm estimates the parameter vector $\theta = [\beta_0,\beta_1]$ by sta
 $$\theta := \theta + \frac \alpha N X^T(Y - \theta X)$$
 
 where $\alpha$ is the step size (or learning rate) and $(Y - \theta X)^T X$ is the gradient. At each step it calculates the gradient of the loss and adjusts the parameter set accordingly.
+```{r}
+GDA <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  while(imprv > epsilon & i < max_iter){
+    i <- i + 1
+    grad  <- (t(x) %*% (y-x %*% theta))
+    theta <- theta + (alpha / N) * grad
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+  }
+  if (i==max_iter){print(paste0("maximum interation ", max_iter, " was reached"))} else {
+    print(paste0("Finished in ", i, " iterations"))
+  }
+  
+  return(theta)
+}
+
+plot_line <- function(theta) {
+  ggplot(Auto, aes(x=log(horsepower),y=log(mpg))) + 
+    geom_point(alpha=.7) + 
+    geom_abline(slope = theta[2], intercept = theta[1], colour='firebrick') + 
+    ggtitle(paste0('int: ', round(theta[1],2), ', slope: ', round(theta[2],2)))
+}
+
+x <- log(Auto$horsepower)
+y <- log(Auto$mpg)
+theta0 <- c(1,1)
+```
+
 
 ### 3.3. Run GDA
 
 
 1. Run the code with the above parameters. How many iterations did it take to estimate the parameters?
+```{r}
+theta <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-5)
+plot_line(theta)
+```
+
+3.3.1) It took 3193 iterations to estimate the parameters.
+
 2. Reduce epsilon to `1e-6`, set `alpha=0.05` run the code. 
     - How many iterations did it take to estimate the parameters?
     - Does the result improve? Why or why not?
+```{r}
+theta <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-6)
+plot_line(theta)
+```
+
+3.3.2) It took 7531 iterations to estimate the parameters. The results did improve because the epsilon value used is smaller than the one listed in Question 3.3.1. As the epsilon value is smaller, this means that the Gradient Descent Algorithm code only stops when the difference between the actual value and the estimated value is less than the given epsilon value. The smaller the epsilon value, the smaller the difference has to be, thus a more optimal solution is achieved.
+
 3. Reduce alpha to `alpha=0.01`
    - How many iterations did it take?
    - Did the resulting line change? Why or why not?
+```{r}
+theta <- GDA(x, y, theta0, alpha = 0.01, epsilon = 1e-6)
+plot_line(theta)
+```
+
+3.3.3) It took 22490 iterations to estimate the parameters. The resulting line did change because the alpha value was decreased from the previous question. This means that it will take a longer time for the solution to converge as the learning rate is smaller now.
+
 4. Set alpha back to `alpha=0.05` and try `theta0=c(1,1)` vs. `theta0=c(1,-1)`:
    - How many iterations did it take? Which is less than the other?
    - Why starting with a negative slope have this effect?
+```{r}
+theta0 <- c(1,-1)
+theta <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-6)
+plot_line(theta)
+```
+
+3.3.4) It took 7265 iterations to estimate the parameters with theta0=(1,-1) which was less than the amount of iterations it took theta0=(1,1) (it took 7531 iterations from Question 3.3.2). Starting with a negative slope has this effect because the data has a negative relationship as evident by the plot above. With a negative slope it matches the trend of the data and thus allows for a faster convergence to the optimal solution.
+
 5. Reduce epsilon to `epsilon = 1e-8` and try `alpha=0.01`, `alpha=0.05` and `alpha=0.1`.
    - What effect does alpha have on iterations and resulting fitted line?
+```{r}
+theta0 <- c(1,1)
+theta <- GDA(x, y, theta0, alpha = 0.01, epsilon = 1e-8)
+q_3.3.5_1 <- plot_line(theta)
+theta <- GDA(x, y, theta0, alpha = 0.05, epsilon = 1e-8)
+q_3.3.5_2 <- plot_line(theta)
 
+# setting alpha = 0.1 the cost starts to increase
+# theta <- GDA(x, y, theta0, alpha = 0.1, epsilon = 1e-8)
 
+grid.arrange(q_3.3.5_1, q_3.3.5_2, ncol=2)
+```
+
+3.3.5) The plot on the left took the maximum amount of iterations (25000), while the plot on the right took 16207 iterations. Using an alpha value of 0.1, the cost started to increase and thus the results could not be computed. The result that alpha has on the iterations is that with a lower alpha value, the learning rate is a lot smaller and thus more iterations are required to reach the optimal solution. Using alpha = 0.01 it results in a line that marginally fits the data. A higher alpha value leads to a faster learning rate and less iterations are required to reach the optimal solution. Using alpha = 0.05, it results in a line that fits the downward trend of the data much better. 
+When using too large of an alpha value, it can overshoot the minimum solution and fail to converge. 
+
+\pagebreak
+
+## Question 4. BGD vs SGD
+
+### 4.1 BGD and SGD functions
+```{r}
+BGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  while(imprv > epsilon & i < max_iter){cost
+    i <- i + 1
+    grad <- 0
+    for(j in 1:length(y)){
+      grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+      grad <- grad + grad_chng
+    }
+    theta <- theta + (alpha / N) * grad
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+    if((cost[i+1] - cost[i]) > 0) stop("Cost is increasing. Try reducing alpha.")
+  }
+  print(paste0("Stopped in ", i, " iterations"))
+  cost <- cost[-1]
+  return(list(theta,cost))
+}
+```
+
+```{r}
+SGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
+  
+  # Inputs
+  # x      : The input variables (M columns)
+  # y      : Output variables    (1 column)
+  # theta0 : Initial weight vector (M+1 columns)
+  
+  x     <- as.matrix(x)
+  y     <- as.matrix(y) 
+  N     <- nrow(x)
+  i     <- 0
+  theta <- theta0
+  x     <- cbind(1, x) # Adding 1 as first column for intercept
+  imprv <- 1e10
+  cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+  delta <- 1
+  grad <- 0
+  
+  for(i in 1:max_iter){cost
+    for (j in 1:length(y)){
+      grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+      grad <- grad + grad_chng 
+      theta <- theta + (alpha / N) * grad
+    }
+    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    imprv <- abs(cost[i+1] - cost[i])
+  }
+  print(paste0("Stopped in ", max_iter, " iterations"))
+  cost <- cost[-1]
+  return(list(theta,cost))
+}
+```
+
+### 4.2 Compairing BGD and SGD
+```{r}
+x <- log(Auto$horsepower)
+y <- log(Auto$mpg)
+resBGD <- BGD(x, y, c(1, -1), alpha = 0.005, epsilon = 1e-5, max_iter = 10)
+resSGD <- SGD(x, y, c(1, -1), alpha = 0.005, epsilon = 1e-5, max_iter = 10)
+
+thetaBGD <- resBGD[[1]]
+lossBGD  <- resBGD[[2]]
+thetaSGD <- resSGD[[1]]
+lossSGD  <- resSGD[[2]]
+ggplot() + 
+  geom_point(aes(x=1:length(lossBGD), y=lossBGD), colour="black") +
+  geom_point(aes(x=1:length(lossSGD), y=lossSGD), colour="blue") +
+  labs(x='iteration', y="loss")
+```
+
+Stochastic Gradient Descent yielded minimum loss up until the 5th iteration as it reached the min first, but after the 5th iteration, Batch Gradient Descent yielded minimum loss. The losses differ because with BGD it considers all the data points first and then updates theta. With SGD it only uses one data point at a time to update theta.
