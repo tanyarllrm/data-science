@@ -348,16 +348,18 @@ SGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
   delta <- 1
   grad <- 0
   
-  length(y)
-  for(j in 1:max_iter){
-    grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
-    grad <- grad + grad_chng 
-    theta <- theta + (alpha / N) * grad
+  for(i in 1:max_iter){
+    current_cost <- 0.0
+    for(j in 1:length(y)){
+      grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
+      grad <- grad + grad_chng 
+      theta <- theta + (alpha / N) * grad
+      
+      current_cost <- current_cost + (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
+    }
     
-    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    cost  <- append(cost, current_cost)
     imprv <- abs(cost[i+1] - cost[i])
-    
-
   }
   
    
