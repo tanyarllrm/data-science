@@ -19,7 +19,7 @@ always_allow_html: true
 <!-- You can check templates from this website and change html theme: https://www.datadreaming.org/post/r-markdown-theme-gallery/ -->
 <!-- It won't affect the PDF or Word. -->
 
-```{r}
+```{r, message=FALSE}
 # Insert necessary packages
 library('tidyverse')
 library('gridExtra')
@@ -286,7 +286,7 @@ but the new model 3 had a slightly lower MSE.
 In case you want to take a picture (screenshot) of your notebook (tablet), you can use the below lines to embed the image to the output PDF file:
 
 ```{r}
-
+# The images have been submitted on Learn as well.
 knitr::include_graphics('q2-1.jpg')
 knitr::include_graphics('q2-2.jpg')
 knitr::include_graphics('q2-3.jpg')
@@ -506,15 +506,22 @@ SGD <- function(x, y, theta0, alpha = 0.01, epsilon = 1e-8, max_iter=25000){
   imprv <- 1e10
   cost  <- (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
   delta <- 1
-  grad <- 0
   
-  for(i in 1:max_iter){cost
-    for (j in 1:length(y)){
+  set.seed(3)
+  
+  for(i in 1:max_iter){
+    current_cost <- 0
+    grad <- 0
+    
+    for (q in 1:length(y)){
+      j <- sample(1:length(y), 1) # shuffle the data
       grad_chng <- x[j, ] * c(y[j]-x[j, ] %*% theta)
       grad <- grad + grad_chng 
       theta <- theta + (alpha / N) * grad
+      
+      current_cost <- current_cost + (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y)
     }
-    cost  <- append(cost, (1/(2*N)) * t(x %*% theta - y) %*% (x %*% theta - y))
+    cost  <- append(cost, current_cost)
     imprv <- abs(cost[i+1] - cost[i])
   }
   print(paste0("Stopped in ", max_iter, " iterations"))
@@ -540,4 +547,4 @@ ggplot() +
   labs(x='iteration', y="loss")
 ```
 
-Stochastic Gradient Descent yielded minimum loss up until the 5th iteration as it reached the min first, but after the 5th iteration, Batch Gradient Descent yielded minimum loss. The losses differ because with BGD it considers all the data points first and then updates theta. With SGD it only uses one data point at a time to update theta.
+In the plot, the blue points represent loss from SGD and the black points represent loss from BGD.  Looking closer at the SGD losses, the losses are still decreasing but at a much slower rate compared to BGD.  In addition, the SGD losses are much higher than BGD. This makes sense because SGD is only considering one data point at a time when updating theta; on the other hand, BGD is considering all data points at once then updating theta values.
