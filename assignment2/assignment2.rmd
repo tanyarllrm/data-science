@@ -1,6 +1,6 @@
 ---
 title: 'Lab Report 2'
-author: "your name here"
+author: "By: Abhishek Shah, Ravi Seth, Tanya Ralliaram"
 geometry: margin=.75in
 output:
   pdf_document: default
@@ -18,10 +18,258 @@ fontsize: 11pt
 <!-- You can check templates from this website and change html theme: https://www.datadreaming.org/post/r-markdown-theme-gallery/ -->
 <!-- It won't affect the PDF or Word. -->
 
+```{r, message=FALSE}
+# Insert necessary packages
+library('tidyverse')
+library('gridExtra')
+library('ISLR')
+library('plotly')
+library('caret')
+library('MASS')
+library('glm2')
+```
 
-## Question 1
+## Question 1: Nonlinear Regression
+
+### 1.1. Process your data
+
+```{r}
+# Read the data
+diamonds <- read.csv('data/diamonds.csv')
+
+# Remove all rows that contain NA
+diamonds <- na.omit(diamonds)
+
+# Downsample data
+diamonds <- diamonds[sample(5000), ]
+dim(diamonds)
+
+head(diamonds)
+```
+
+```{r}
+numeric.cols <- summarize_all(diamonds, is.numeric) %>% unlist()
+pairs(diamonds[,numeric.cols], col = adjustcolor('firebrick', .3), pch=16)
+```
+
+### 1.3. Visualize the data
+
+It was decided to do step 1.3. before step 1.2 because before splitting the input data into train and test, it makes more sense to apply the necessary transformations first.
+
+```{r}
+histo1 <- ggplot(data = diamonds) +
+  geom_histogram(aes(x = z)) +
+  ggtitle("Histogram of Diamond Depth")
+
+histo2 <- ggplot(data = diamonds) +
+  geom_histogram(aes(x = carat)) + 
+  ggtitle("Histogram of Diamond Price")
+
+grid.arrange(histo1, histo2, ncol=2)
+
+```
+```{r}
+# Remove outliers
+diamonds <- diamonds[(diamonds$z>1),]
+
+# Apply logarithmic transform
+numeric.cols <- summarize_all(diamonds, is.numeric) %>% unlist()
+logDiamonds <- log(diamonds[,numeric.cols])
+
+scatter1 <- ggplot(data = diamonds) +
+  geom_point(aes(x = z, y=carat)) + 
+  ggtitle("Scatter Plot of Carat vs Z")
+
+scatter2 <- ggplot(data = logDiamonds) +
+  geom_point(aes(x = z, y=carat)) + 
+  ggtitle("Scatter Plot of Log Carat vs Log Z")
+
+grid.arrange(scatter1, scatter2, ncol=2)
+```
+After removing some outliers, it can be clearly seen that as z is increased, the carat is also increased.  In terms of linearity, it is slightly non-linear and showing exponential form.  When applying log transform to all the carat and x values, then the relationship is clearly linear.  
+
+### 1.2. Train / Test Split 
+
+```{r}
+set.seed(156)
+train_inds <- sample(1:nrow(logDiamonds), floor(nrow(logDiamonds)*0.8))
+train <- logDiamonds[ train_inds, ]
+test  <- logDiamonds[-train_inds, ]
+
+cat('train: ', nrow(train), ', test: ', nrow(test))
+```
+
+### 1.4. Fit 4 Models
+
+```{r}
+# Linear Regression
+fit.lm  <- lm(carat ~ z, data = train)
+
+# Predictions
+preds.lm_train <- predict(fit.lm, train)
+preds.lm_test <- predict(fit.lm, test)
+
+# RMSE
+rmse.lm_train  <- RMSE(preds.lm_train, train$carat)
+rmse.lm_test  <- RMSE(preds.lm_test, test$carat)
+
+# Multilinear Regression
+fit.mlm <- lm(carat ~ ., data = train)
+
+# Predictions
+preds.mlm_train <- predict(fit.mlm, train)
+preds.mlm_test <- predict(fit.mlm, test)
+
+# RMSE
+rmse.mlm_train  <- RMSE(preds.mlm_train, train$carat)
+rmse.mlm_test  <- RMSE(preds.mlm_test, test$carat)
+
+# Polynomial Regression
+fit.poly <- lm(carat ~ poly(z,6), data = train)
+
+# Predictions
+preds.poly_train <- predict(fit.poly, train)
+preds.poly_test <- predict(fit.poly, test)
+
+# RMSE
+rmse.poly_train  <- RMSE(preds.poly_train, train$carat)
+rmse.poly_test  <- RMSE(preds.poly_test, test$carat)
+
+# Locally Weighted Regression
+fit.wlm <- loess(carat ~ z, data=train)
+
+# Predictions
+preds.wlm_train <- predict(fit.wlm, train)
+preds.wlm_test <- predict(fit.wlm, test)
+
+# RMSE
+rmse.wlm_train  <- RMSE(preds.wlm_train, train$carat)
+rmse.wlm_test  <- RMSE(preds.wlm_test, test$carat)
+```
+
+```{r}
+
+# Plots
+linear_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.lm_test), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Linear Regression \nTrain RMSE: ',round(rmse.lm_train, 6), "\nTest RMSE: ", round(rmse.lm_test, 6)))
+
+multilinear_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.mlm_test), colour = 'green', alpha=.8) + 
+  ggtitle(paste0('Multilinear Regression \nTrain RMSE: ',round(rmse.mlm_train, 6), "\nTest RMSE: ", round(rmse.mlm_test, 6)))
+
+poly_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.poly_test), colour = 'orange', alpha=.8) + 
+  ggtitle(paste0('Polynomial Regression \nTrain RMSE: ',round(rmse.poly_train, 6), "\nTest RMSE: ", round(rmse.poly_test, 6)))
+
+weighted_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.wlm_test), colour = 'firebrick', alpha=.8) + 
+  ggtitle(paste0('Locally Weighted Regression \nTrain RMSE: ',round(rmse.wlm_train, 6), "\nTest RMSE: ", round(rmse.wlm_test, 6)))
+
+grid.arrange(linear_plot, multilinear_plot, poly_plot, weighted_plot, ncol=2)
+```
+
+Based off of Train RMSE, the order of models from best (lowest RMSE) to worst (highest RMSE) is: 
+1. Multilinear Regression
+2. Polynomial Regression
+3. Locally Weighted Regression tied
+4. Linear Regression
 
 
+Based off of the Test RMSE, the order of models from best (lowest RMSE) to worst (highest RMSE) is: 
+1. Multilinear Regression
+2. Polynomial Regression
+3. Locally Weighted Regression
+4. Linear Regression
+
+The order of models from best to worst did not change when ordering by train RMSE or test RMSE.
+
+### 1.5. Cross Validation
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats=5)
+
+# Linear regression
+cv_fit.lm <- train(
+  form = carat ~ z, 
+  data = train, 
+  method = "lm",
+  trControl = ctrl
+)
+
+preds.cv_lm <- predict(cv_fit.lm,test)
+rmse.cv_lm  <- RMSE(preds.cv_lm,test$carat)
+
+# Multilinear regression
+cv_fit.mlm <- train(
+  form = carat ~ ., 
+  data = train, 
+  method = "lm",
+  trControl = ctrl
+)
+
+preds.cv_mlm <- predict(cv_fit.mlm,test)
+rmse.cv_mlm  <- RMSE(preds.cv_mlm,test$carat)
+
+# Polynomial regression
+
+cv_fit.poly <- train(
+  form = carat ~ poly(z, 6), 
+  data = train, 
+  method = "lm",
+  trControl = ctrl
+)
+
+preds.cv_poly <- predict(cv_fit.poly,test)
+rmse.cv_poly  <- RMSE(preds.cv_poly,test$carat)
+
+# Locally weighted regression
+cv_fit.wlm <- train(
+  form = carat ~ z, 
+  data = train, 
+  method = "gamLoess",
+  trControl = ctrl
+)
+
+preds.cv_wlm <- predict(cv_fit.wlm,test)
+rmse.cv_wlm  <- RMSE(preds.cv_wlm,test$carat)
+
+```
+
+```{r}
+cv_linear_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.cv_lm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Linear Regression \nTest RMSE: ',round(rmse.cv_lm, 6)))
+
+cv_multilinear_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.cv_mlm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Multilinear Regression \nTest RMSE: ',round(rmse.cv_mlm, 6)))
+
+cv_poly_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.cv_poly), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Polynomial Regression \nTest RMSE: ',round(rmse.cv_poly, 6)))
+
+cv_wlm_plot <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.cv_wlm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Locally Weighted Regression \nTest RMSE: ',round(rmse.cv_wlm, 6)))
+
+grid.arrange(cv_linear_plot, cv_multilinear_plot, cv_poly_plot, cv_wlm_plot, ncol=2)
+```
+Based off of the Test RMSE, the order of models from best (lowest RMSE) to worst (highest RMSE) is: 
+1. Multilinear Regression
+2. Locally Weighted Regression
+3. Polynomial Regression
+4. Linear Regression
+
+The order of models have changed when adding k fold cross validation.  The Locally Weighted Regression is now second best and moved in front of Polynomial Regression.  Therefore, by applying cross validation, more precise performance metrics have been measured for the models. 
 
 \pagebreak
 
