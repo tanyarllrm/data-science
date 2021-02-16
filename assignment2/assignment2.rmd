@@ -26,7 +26,10 @@ library('ISLR')
 library('plotly')
 library('caret')
 library('MASS')
-library('glm2')
+library('glmnet')
+library('gam')
+library('splines')
+library('foreach')
 ```
 
 ## Question 1: Nonlinear Regression
@@ -45,11 +48,6 @@ diamonds <- diamonds[sample(5000), ]
 dim(diamonds)
 
 head(diamonds)
-```
-
-```{r}
-numeric.cols <- summarize_all(diamonds, is.numeric) %>% unlist()
-pairs(diamonds[,numeric.cols], col = adjustcolor('firebrick', .3), pch=16)
 ```
 
 ### 1.3. Visualize the data
@@ -190,7 +188,7 @@ The order of models from best to worst did not change when ordering by train RMS
 
 ### 1.5. Cross Validation
 
-```{r}
+```{r, warning=F}
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats=5)
 
 # Linear regression
@@ -270,6 +268,102 @@ Based off of the Test RMSE, the order of models from best (lowest RMSE) to worst
 4. Linear Regression
 
 The order of models have changed when adding k fold cross validation.  The Locally Weighted Regression is now second best and moved in front of Polynomial Regression.  Therefore, by applying cross validation, more precise performance metrics have been measured for the models. 
+
+### 1.6. Shrinkage
+
+```{r}
+x_train <- model.matrix(carat ~ z,train)
+x_train_multi <- model.matrix(carat ~ .,train)
+x_train_poly <- model.matrix(carat ~ poly(z,6),train)
+y_train <- train$carat
+
+x_test <- model.matrix(carat ~ z,test)
+x_test_multi <- model.matrix(carat ~ .,test)
+x_test_poly <- model.matrix(carat ~ poly(z, 6),test)
+
+# Ridge
+fit.ridge_lm  <- cv.glmnet(x_train,y_train,alpha=0, nfolds = 10)
+fit.ridge_lm <- glmnet(x_train,y_train,alpha=0, lambda=fit.ridge_lm$lambda.min)
+
+fit.ridge_mlm  <- cv.glmnet(x_train_multi,y_train,alpha=0, nfolds = 10)
+fit.ridge_mlm <- glmnet(x_train_multi,y_train,alpha=0, lambda=fit.ridge_mlm$lambda.min)
+
+fit.ridge_poly  <- cv.glmnet(x_train_poly,y_train,alpha=0, nfolds = 10)
+fit.ridge_poly <- glmnet(x_train_poly,y_train,alpha=0, lambda=fit.ridge_poly$lambda.min)
+
+
+preds.ridge_lm <- predict(fit.ridge_lm, x_test)
+preds.ridge_mlm <- predict(fit.ridge_mlm, x_test_multi)
+preds.ridge_poly <- predict(fit.ridge_poly, x_test_poly)
+
+rmse.ridge_lm <- RMSE(preds.ridge_lm, test$carat)
+rmse.ridge_mlm <- RMSE(preds.ridge_mlm, test$carat)
+rmse.ridge_poly <- RMSE(preds.ridge_poly, test$carat)
+
+# Lasso
+fit.lasso_lm  <- cv.glmnet(x_train,y_train,alpha=1, nfolds = 10)
+fit.lasso_lm <- glmnet(x_train,y_train,alpha=1, lambda=fit.lasso_lm$lambda.min)
+
+fit.lasso_mlm  <- cv.glmnet(x_train_multi,y_train,alpha=1, nfolds = 10)
+fit.lasso_mlm <- glmnet(x_train_multi,y_train,alpha=1, lambda=fit.lasso_mlm$lambda.min)
+
+fit.lasso_poly  <- cv.glmnet(x_train_poly,y_train,alpha=1, nfolds = 10)
+fit.lasso_poly <- glmnet(x_train_poly,y_train,alpha=1, lambda=fit.lasso_poly$lambda.min)
+
+preds.lasso_lm <- predict(fit.lasso_lm, x_test)
+preds.lasso_mlm <- predict(fit.lasso_mlm, x_test_multi)
+preds.lasso_poly <- predict(fit.lasso_poly, x_test_poly)
+
+rmse.lasso_lm <- RMSE(preds.lasso_lm, test$carat)
+rmse.lasso_mlm <- RMSE(preds.lasso_mlm, test$carat)
+rmse.lasso_poly <- RMSE(preds.lasso_poly, test$carat)
+
+```
+
+```{r}
+# Ridge 
+ridge_lm <-ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.ridge_lm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Ridge Linear Regression \nTest RMSE: ',round(rmse.ridge_lm, 6)))
+
+ridge_mlm <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.ridge_mlm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Ridge MultiLinear Regression \nTest RMSE: ',round(rmse.ridge_mlm, 6)))
+
+ridge_poly <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.ridge_poly), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Ridge Polynomial Regression \nTest RMSE: ',round(rmse.ridge_poly, 6)))
+
+# Lasso
+lasso_lm <-ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.lasso_lm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Lasso Linear Regression \nTest RMSE: ',round(rmse.lasso_lm, 6)))
+
+lasso_mlm <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.lasso_mlm), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Lasso MultiLinear Regression \nTest RMSE: ',round(rmse.lasso_mlm, 6)))
+
+lasso_poly <- ggplot(test, aes(y=carat, x=z)) + 
+  geom_point(alpha=.8, position = position_jitter()) +
+  geom_line(aes(y=preds.lasso_poly), colour = 'steelblue', alpha=.8) + 
+  ggtitle(paste0('Lasso Polynomial Regression \nTest RMSE: ',round(rmse.lasso_poly, 6)))
+
+grid.arrange(ridge_lm, ridge_mlm, ridge_poly, ncol=2)
+
+grid.arrange(lasso_lm, lasso_mlm, lasso_poly, ncol=2)
+```
+The model that yielded the lowest RMSE was Lasso Multilinear Regression.  Based off of the Test RMSE, the order of models from best (lowest RMSE) to worst (highest RMSE) is: 
+1. Lasso Multilinear Regression
+2. Ridge Multilinear Regression
+3. Lasso Linear Regression
+4. Ridge Linear Regression
+5. Ridge Polynomial Regression
+6. Lasso Polynomial Regression
 
 \pagebreak
 
