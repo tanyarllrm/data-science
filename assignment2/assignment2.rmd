@@ -30,6 +30,8 @@ library('glmnet')
 library('gam')
 library('splines')
 library('foreach')
+library("leaps")
+library("AmesHousing")
 ```
 
 ## Question 1: Nonlinear Regression
@@ -380,12 +382,165 @@ The model that yielded the lowest RMSE was Lasso Multilinear Regression.  Based 
 ## Question 2
 
 ```{r}
-knitr::include_graphics('conspiracy.jpg')
+# read in data
+health <- read.csv("data/mental_health.csv")[,-1]
 ```
+
+
+### 2.1 Train / Test Split
+```{r}
+set.seed(123)
+train_inds <- sample(1:nrow(health), floor(nrow(health)*0.8))
+train <- health[ train_inds, ]
+test  <- health[-train_inds, ]
+X_train   <- model.matrix(IsMentalHealthRelated ~ .,train)
+y_train   <- train$IsMentalHealthRelated
+X_test   <- model.matrix(IsMentalHealthRelated ~ .,test)
+y_test   <- test$IsMentalHealthRelated
+cat('train: ', dim(train), ', test: ', dim(test))
+```
+
+### 2.2 Fit models
+```{r, warning=FALSE}
+# Logistic Regression model
+fit.logreg <- glm(formula = IsMentalHealthRelated ~ ., data=train, family = binomial())
+# L1 Model
+cv.fit  <- cv.glmnet(X_train, y_train, alpha=1, family="binomial", nfolds = 5)
+lambda.l1 <- cv.fit$lambda.min
+fit.l1 <- glmnet(X_train, y_train, alpha=1, family="binomial", lambda=lambda.l1)
+# L2 Model
+cv.fit  <- cv.glmnet(X_train, y_train, alpha=0, family="binomial", nfolds = 5)
+lambda.l2 = cv.fit$lambda.min
+fit.l2 <- glmnet(X_train, y_train, alpha=0, family="binomial", lambda=lambda.l2)
+```
+
+### 2.3 Compare Performances
+```{r, warning=FALSE}
+# Logistic Regression (LR)
+probs.logreg <- predict(fit.logreg, as.data.frame(X_test), type="response")
+preds.logreg  <- ifelse(probs.logreg >= 0.5, 1, 0)
+acc.logreg <- mean(preds.logreg == y_test)
+# L1 Model
+probs.l1 <- predict(fit.l1, X_test, type="response")
+preds.l1  <- ifelse(probs.l1 >= 0.5, 1, 0)
+acc.l1 <- mean(preds.l1 == y_test)
+# L2 Model
+probs.l2 <- predict(fit.l2, X_test, type="response")
+preds.l2  <- ifelse(probs.l2 >= 0.5, 1, 0)
+acc.l2 <- mean(preds.l2 == y_test)
+cat(sprintf("Logisitc Regression Accuracy: %f \nL1 Accuracy: %f \nL2 Accuracy: %f", acc.logreg, acc.l1, acc.l2))
+```
+The L2 model had the best accuracy and L1 has the second best accuracy. Logistic Regression without any regularization had the worst accuracy out of the three.
+
+### 2.4 Interpret the models
+```{r}
+sorted.l1 <- sort(coef(fit.l1)[,1])
+cat('The words that have the highest coefficients with L1 are: \n')
+sort(tail(sorted.l1, 5), decreasing=TRUE)
+cat('\nThe words that have the smallest coefficients with L1 are: \n')
+head(sorted.l1, 5)
+sorted.l2 <- sort(coef(fit.l2)[,1])
+cat('\nThe words that have the highest coefficients with L2 are: \n')
+sort(tail(sorted.l2, 5), decreasing=TRUE)
+cat('\nThe words that have the smallest coefficients with L2 are: \n')
+head(sorted.l2, 5)
+```
+
+L1 tends to tends to zero many coefficients while keeping the rest as they are.
+L2 tends to shrink all the coefficients and doesn’t zero any.
 
 \pagebreak
 
 ## Question 3
 
-$$\theta := \theta + \frac \alpha N X^T(Y - \theta X)$$
+```{r}
+ames        <- AmesHousing::make_ames()
+numericVars <- ames %>% summarise_all(is.numeric) %>% unlist()
+ames        <- ames[, numericVars]
+dim(ames)
+```
+```{r}
+head(ames)
+```
+
+### Forward Selection
+Using forward selection, find the best model coefficients that predict Sale_Price
+
+1. Run forward selection using `regsubsets` function.
+
+```{r}
+res <- regsubsets(Sale_Price ~ .,data=ames, method = "forward", nvmax=34)
+smm <- summary(res)
+smm
+```
+
+2. Extract the RSS of each model and plot. Your plot must have number of predictors on x axis and RSS on y axis.
+
+```{r}
+smm$rss
+```
+
+```{r}
+plot(smm$rss ,xlab="Number of Predictors ",ylab="RSS", type="l")
+```
+
+3. What number of predictors were used in the best model? What are the coefficients?
+
+We can see that the RSS when only 1 variable `Gr_Living_Area` is included is the highest,
+at 9.35e+12, and when all predictors are included it is the lowest at 3.7e+12.
+
+
+4. A friend of yours said that RSS is not a reliable measure and one must use BIC instead. Do all the steps you did for RSS. How many predictors resulted in the best model that yielded the minimum BIC?
+
+```{r}
+smm$bic
+```
+```{r}
+which.min(smm$bic )
+```
+
+```{r}
+plot(smm$bic ,xlab="Number of Predictors ",ylab="BIC", type="l")
+points(21,smm$bic[21],col="red",cex=2,pch =20)
+```
+Using the BIC measure, the best model occurs when 21 predictors are used, and the
+minimum BIC is -4541.957
+
+### Backward Selection
+
+1. Run backward selection using `regsubsets` function.
+```{r}
+res <- regsubsets(Sale_Price ~ .,data=ames, method = "backward", nvmax=34)
+smm_bw <- summary(res)
+smm_bw
+```
+2. Extract the RSS of each model and plot. Your plot must have number of predictors on x axis and RSS on y axis.
+
+```{r}
+smm_bw$rss
+```
+
+```{r}
+plot(smm_bw$rss ,xlab="Number of Predictors ",ylab="RSS", type="l")
+```
+3. What number of predictors were used in the best model? What are the coefficients?
+
+We can see that the RSS when only 1 variable `First_Flr_SF` is included is the highest,
+at 1.15+e13, and when all predictors are included it is the lowest at 3.7e+12.
+
+
+4. A friend of yours said that RSS is not a reliable measure and one must use BIC instead. Do all the steps you did for RSS. How many predictors resulted in the best model that yielded the minimum BIC?
+
+```{r}
+smm_bw$bic
+```
+```{r}
+which.min(smm_bw$bic )
+```
+
+```{r}
+plot(smm_bw$bic ,xlab="Number of Predictors ",ylab="BIC", type="l")
+points(22,smm_bw$bic[22],col="red",cex=2,pch =20)
+```
+Using the BIC measure with backwards selection, the best model occurs when 22 predictors are used, and the minimum BIC is -4540.439.
 
