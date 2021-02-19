@@ -45,6 +45,14 @@ diamonds <- na.omit(diamonds)
 
 # Downsample data
 diamonds <- diamonds[sample(5000), ]
+
+# Select columns
+diamonds <- diamonds[, c('X', 'carat', 'cut', 'depth', 'table', 'price', 'x', 'y', 'z')]
+
+# Convert string column to categorical column
+# Convert diamond string variables to categorical
+diamonds$cut <- as.factor(diamonds$cut)
+               
 dim(diamonds)
 
 head(diamonds)
@@ -57,22 +65,24 @@ It was decided to do step 1.3. before step 1.2 because before splitting the inpu
 ```{r}
 histo1 <- ggplot(data = diamonds) +
   geom_histogram(aes(x = z)) +
-  ggtitle("Histogram of Diamond Depth")
+  ggtitle("Histogram of Diamond Z")
 
 histo2 <- ggplot(data = diamonds) +
   geom_histogram(aes(x = carat)) + 
-  ggtitle("Histogram of Diamond Price")
+  ggtitle("Histogram of Diamond Carat")
 
 grid.arrange(histo1, histo2, ncol=2)
 
 ```
+
 ```{r}
 # Remove outliers
 diamonds <- diamonds[(diamonds$z>1),]
 
 # Apply logarithmic transform
 numeric.cols <- summarize_all(diamonds, is.numeric) %>% unlist()
-logDiamonds <- log(diamonds[,numeric.cols])
+logDiamonds <- diamonds
+logDiamonds[,numeric.cols] <- log(diamonds[,numeric.cols])
 
 scatter1 <- ggplot(data = diamonds) +
   geom_point(aes(x = z, y=carat)) + 
@@ -174,7 +184,7 @@ grid.arrange(linear_plot, multilinear_plot, poly_plot, weighted_plot, ncol=2)
 Based off of Train RMSE, the order of models from best (lowest RMSE) to worst (highest RMSE) is: 
 1. Multilinear Regression
 2. Polynomial Regression
-3. Locally Weighted Regression tied
+3. Locally Weighted Regression
 4. Linear Regression
 
 
