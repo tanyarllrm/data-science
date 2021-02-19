@@ -35,5 +35,101 @@ knitr::include_graphics('conspiracy.jpg')
 
 ## Question 3
 
+```{r}
+library("tidyverse")
+library("leaps")
+library("AmesHousing")
+ames        <- AmesHousing::make_ames()
+numericVars <- ames %>% summarise_all(is.numeric) %>% unlist()
+ames        <- ames[, numericVars]
+dim(ames)
+```
+```{r}
+head(ames)
+```
+
+### Forward Selection
+Using forward selection, find the best model coefficients that predict Sale_Price
+
+1. Run forward selection using `regsubsets` function.
+
+```{r}
+res <- regsubsets(Sale_Price ~ .,data=ames, method = "forward", nvmax=34)
+
+smm <- summary(res)
+smm
+```
+
+2. Extract the RSS of each model and plot. Your plot must have number of predictors on x axis and RSS on y axis.
+
+```{r}
+smm$rss
+```
+
+```{r}
+plot(smm$rss ,xlab="Number of Predictors ",ylab="RSS", type="l")
+```
+
+3. What number of predictors were used in the best model? What are the coefficients?
+
+We can see that the RSS when only 1 variable `Gr_Living_Area` is included is the highest,
+at 9.35e+12, and when all predictors are included it is the lowest at 3.7e+12.
+
+
+4. A friend of yours said that RSS is not a reliable measure and one must use BIC instead. Do all the steps you did for RSS. How many predictors resulted in the best model that yielded the minimum BIC?
+
+```{r}
+smm$bic
+```
+```{r}
+which.min(smm$bic )
+```
+
+```{r}
+plot(smm$bic ,xlab="Number of Predictors ",ylab="BIC", type="l")
+points(21,smm$bic[21],col="red",cex=2,pch =20)
+```
+Using the BIC measure, the best model occurs when 21 predictors are used, and the
+minimum BIC is -4541.957
+
+### Backward Selection
+
+1. Run backward selection using `regsubsets` function.
+```{r}
+res <- regsubsets(Sale_Price ~ .,data=ames, method = "backward", nvmax=34)
+
+smm_bw <- summary(res)
+smm_bw
+```
+2. Extract the RSS of each model and plot. Your plot must have number of predictors on x axis and RSS on y axis.
+
+```{r}
+smm_bw$rss
+```
+
+```{r}
+plot(smm_bw$rss ,xlab="Number of Predictors ",ylab="RSS", type="l")
+```
+3. What number of predictors were used in the best model? What are the coefficients?
+
+We can see that the RSS when only 1 variable `First_Flr_SF` is included is the highest,
+at 1.15+e13, and when all predictors are included it is the lowest at 3.7e+12.
+
+
+4. A friend of yours said that RSS is not a reliable measure and one must use BIC instead. Do all the steps you did for RSS. How many predictors resulted in the best model that yielded the minimum BIC?
+
+```{r}
+smm_bw$bic
+```
+```{r}
+which.min(smm_bw$bic )
+```
+
+```{r}
+plot(smm_bw$bic ,xlab="Number of Predictors ",ylab="BIC", type="l")
+points(22,smm_bw$bic[22],col="red",cex=2,pch =20)
+```
+Using the BIC measure with backwards selection, the best model occurs when 22 predictors are used, and the minimum BIC is -4540.439
+
 $$\theta := \theta + \frac \alpha N X^T(Y - \theta X)$$
 
