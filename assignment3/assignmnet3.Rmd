@@ -20,12 +20,15 @@ always_allow_html: true
 ```{r, message=FALSE}
 # Insert necessary packages
 library('glmnet')
+library('boot')
 library('caret')
 library('ISLR')
 library('plotly')
 library('gridExtra')
 library('tree')
 library('rpart')
+library('rpart.plot')
+library('rattle')
 library('MLmetrics')
 library('e1071')
 ```
@@ -128,7 +131,67 @@ print("SVM was the least biased out of the three as it had zero False Positive (
 ```
 ```{r}
 ## Question 1.4 for Croissant Data
+
+# Logistic Regression 
+
+
+# Decision Tree
+print('Decision Tree')
 set.seed(112)
+
+# perform 10-fold cross validation repeated 3 times
+caret.control = trainControl(method = 'repeatedcv', number = 10, repeats = 3)
+dtree.cv <- train(y ~ ., 
+                  data = train,
+                  method = "rpart",
+                  trControl = caret.control,
+                  tuneLength = 15)
+
+dtree.cv
+dtree.best <- dtree.cv$finalModel
+dtree.best
+
+pred5 <- predict(dtree.cv, test, type = "raw")
+dtree_acc <- Accuracy(pred5,test$y)
+dtree_con <- table(predict=pred5,actual=(test$y))
+
+# SVM
+set.seed(112)
+svmfit <- svm(y~.,data=train, kernel ="radial", gamma=1,cost=1)
+tune.out <- tune(svm, y~., data=train, kernel ="radial",
+              ranges =list(cost=c(0.01, 0.05, .1 ,1 ,10 ,100 ,1000),
+                           gamma=c(0.5,1,2,3,4)))
+pred6 <- predict(tune.out$best.model,test)
+
+print('We chose radial as the kernel as it best fits the shape of the data 
+            and thus should lead to a better prediction.')
+svm_acc <- Accuracy(pred6,test$y)
+svm_con <- table(predict=pred6,actual=(test$y))
+
+summary(tune.out)
+
+
+g1 <- ggplot(test, aes(x1,x2,colour=y)) +
+  geom_point() +
+  ggtitle("True Classes")
+g3 <- ggplot(test, aes(x1,x2,colour=pred5)) +
+  geom_point() +
+  ggtitle("CV Decision Tree Preds")
+g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
+  geom_point() + 
+  ggtitle("SVM, CV'd, cost=1, gamma=0.5")
+
+grid.arrange(g1,g3,g4,ncol=2)
+
+#sprintf("Logisitc Regression Accuracy: %f", lreg_acc) 
+sprintf("Decision Tree Accuracy: %f", dtree_acc)
+sprintf("SVM Accuracy: %f", svm_acc)
+
+
+#lreg_con
+dtree_con
+svm_con
+
 
 ```
 
@@ -202,6 +265,68 @@ print("SVM was the least biased out of the three as it had 7 False Positives (FP
 ```{r}
 ## Question 1.4 for Circles Data
 set.seed(112)
+
+# Logistic Regression 
+
+
+# Decision Tree
+print('Decision Tree')
+set.seed(112)
+
+# perform 10-fold cross validation repeated 3 times
+caret.control = trainControl(method = 'repeatedcv', number = 10, repeats = 3)
+dtree.cv <- train(y ~ ., 
+                  data = train,
+                  method = "rpart",
+                  trControl = caret.control,
+                  tuneLength = 15)
+
+dtree.cv
+dtree.best <- dtree.cv$finalModel
+dtree.best
+
+pred5 <- predict(dtree.cv, test, type = "raw")
+dtree_acc <- Accuracy(pred5,test$y)
+dtree_con <- table(predict=pred5,actual=(test$y))
+
+
+# SVM
+set.seed(112)
+svmfit <- svm(y~.,data=train, kernel ="radial", gamma=1,cost=1)
+tune.out <- tune(svm, y~., data=train, kernel ="radial",
+              ranges =list(cost=c(0.01, 0.05, .1 ,1 ,10 ,100 ,1000),
+                           gamma=c(0.5,1,2,3,4)))
+pred6 <- predict(tune.out$best.model,test)
+
+print('We chose radial as the kernel as it best fits the shape of the data 
+            and thus should lead to a better prediction.')
+svm_acc <- Accuracy(pred6,test$y)
+svm_con <- table(predict=pred6,actual=(test$y))
+
+summary(tune.out)
+
+
+g1 <- ggplot(test, aes(x1,x2,colour=y)) +
+  geom_point() +
+  ggtitle("True Classes")
+g3 <- ggplot(test, aes(x1,x2,colour=pred5)) +
+  geom_point() +
+  ggtitle("CV Decision Tree Preds")
+g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
+  geom_point() + 
+  ggtitle("SVM, CV'd, cost=1, gamma=0.5")
+
+grid.arrange(g1,g3,g4,ncol=2)
+
+#sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
+sprintf("Decision Tree Accuracy: %f", dtree_acc)
+sprintf("SVM Accuracy: %f", svm_acc)
+
+#lreg_con
+dtree_con
+svm_con
+
+
 ```
 
 \pagebreak
@@ -262,6 +387,67 @@ print("Decision Tree was the least biased has it had two false negatives for Cla
 ```{r}
 ## Question 1.4 for Varied Data
 set.seed(112)
+
+
+# Logistic Regression 
+
+
+# Decision Tree
+print('Decision Tree')
+set.seed(112)
+
+# perform 10-fold cross validation repeated 3 times
+caret.control = trainControl(method = 'repeatedcv', number = 10, repeats = 3)
+dtree.cv <- train(y ~ ., 
+                  data = train,
+                  method = "rpart",
+                  trControl = caret.control,
+                  tuneLength = 15)
+
+dtree.cv
+dtree.best <- rpart.cv$finalModel
+dtree.best
+
+pred5 <- predict(rpart.cv, test, type = "raw")
+dtree_acc <- Accuracy(pred5,test$y)
+dtree_con <- table(predict=pred5,actual=(test$y))
+
+
+# SVM
+set.seed(112)
+svmfit <- svm(y~.,data=train, kernel ="radial", gamma=1,cost=1)
+tune.out <- tune(svm, y~., data=train, kernel ="radial",
+              ranges =list(cost=c(0.01, 0.05, .1 ,1 ,10 ,100 ,1000),
+                           gamma=c(0.5,1,2,3,4)))
+pred6 <- predict(tune.out$best.model,test)
+
+print('We chose radial as the kernel as it best fits the shape of the data 
+            and thus should lead to a better prediction.')
+svm_acc <- Accuracy(pred6,test$y)
+svm_con <- table(predict=pred6,actual=(test$y))
+
+summary(tune.out)
+
+
+g1 <- ggplot(test, aes(x1,x2,colour=y)) +
+  geom_point() +
+  ggtitle("True Classes")
+g3 <- ggplot(test, aes(x1,x2,colour=pred5)) +
+  geom_point() +
+  ggtitle("CV Decision Tree Preds")
+g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
+  geom_point() + 
+  ggtitle("SVM, CV'd, cost=1, gamma=0.5")
+
+grid.arrange(g1,g3,g4,ncol=2)
+
+#sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
+sprintf("Decision Tree Accuracy: %f", dtree_acc)
+sprintf("SVM Accuracy: %f", svm_acc)
+
+#lreg_con
+dtree_con
+svm_con
 ```
 
 \pagebreak
@@ -283,16 +469,50 @@ test.hitters  <- hitters[-train_inds, ]
 train_inds <- sample(1:nrow(heart), floor(nrow(heart)*0.7))
 train.heart <- heart[ train_inds, ]
 test.heart  <- heart[-train_inds, ]
+
+hitters
+heart
 ```
 
 ### 2.2. Decision Trees for Regression
 ```{r}
 # 1
+set.seed(112)
+
+dtree_hitters <- rpart(Salary ~ Hits + Years, data=train.hitters)
+
+# 2
+fancyRpartPlot(dtree_hitters, caption ="")
+
+# 3
+print("Based on the decision tree, the output is the node labelled 7.
+      The player's salary should be around 6.7")
+
+# 4
+preds2.2 <- predict(dtree_hitters,type="vector")
+RMSE(preds2.2,test.hitters$Salary)
+
 ```
 
 ### 2.3. Decision Trees for Classification
 ```{r}
 # 1
+set.seed(112)
+
+dtree_heart <- rpart(AHD ~ ., data=train.heart)
+
+# 2
+fancyRpartPlot(dtree_heart, caption ="")
+
+# 3
+preds2.3 <- predict(dtree_heart,type="class")
+accuracy <- Accuracy(preds2.3,test.heart$AHD)
+accuracy
+
+# 4
+conf <- ConfusionMatrix(preds2.3, heart$AHD)
+conf
+
 ```
 
 ### 2.4. Bagging: Regression 
