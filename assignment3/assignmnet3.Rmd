@@ -132,22 +132,37 @@ print("SVM was the least biased out of the three as it had zero False Positive (
 ```{r}
 ## Question 1.4 for Croissant Data
 
-# Logistic Regression 
+# Logistic Regression
+print('Logistic Regression')
+set.seed(112)
+lreg.control <- trainControl(method = 'cv', number = 10)
+lreg.cv <- train(y ~ .,
+               data = train,
+               trControl = lreg.control,
+               method = "glm",
+               family=binomial())
 
+summary(lreg.cv)
+lreg.best <- lreg.cv$finalModel
+lreg.best
+
+pred4 <- predict(lreg.cv, test, type = "raw")
+lreg_acc <- Accuracy(pred4,test$y)
+lreg_con <- table(predict=pred4,actual=(test$y))
 
 # Decision Tree
 print('Decision Tree')
 set.seed(112)
 
 # perform 10-fold cross validation repeated 3 times
-caret.control = trainControl(method = 'repeatedcv', number = 10, repeats = 3)
+dtree.control = trainControl(method = 'repeatedcv', number = 10, repeats = 3)
 dtree.cv <- train(y ~ ., 
                   data = train,
                   method = "rpart",
-                  trControl = caret.control,
+                  trControl = dtree.control,
                   tuneLength = 15)
 
-dtree.cv
+summary(dtree.cv)
 dtree.best <- dtree.cv$finalModel
 dtree.best
 
@@ -174,6 +189,9 @@ summary(tune.out)
 g1 <- ggplot(test, aes(x1,x2,colour=y)) +
   geom_point() +
   ggtitle("True Classes")
+g2 <- ggplot(test, aes(x1,x2,colour=pred4)) +
+  geom_point() +
+  ggtitle("CV Logistic Regression")
 g3 <- ggplot(test, aes(x1,x2,colour=pred5)) +
   geom_point() +
   ggtitle("CV Decision Tree Preds")
@@ -181,14 +199,14 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
   geom_point() + 
   ggtitle("SVM, CV'd, cost=1, gamma=0.5")
 
-grid.arrange(g1,g3,g4,ncol=2)
+grid.arrange(g1,g2,g3,g4,ncol=2)
 
-#sprintf("Logisitc Regression Accuracy: %f", lreg_acc) 
+sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
 
 
-#lreg_con
+lreg_con
 dtree_con
 svm_con
 
@@ -264,10 +282,24 @@ print("SVM was the least biased out of the three as it had 7 False Positives (FP
 ```
 ```{r}
 ## Question 1.4 for Circles Data
+
+# Logistic Regression
+print('Logistic Regression')
 set.seed(112)
+lreg.control <- trainControl(method = 'cv', number = 10)
+lreg.cv <- train(y ~ .,
+               data = train,
+               trControl = lreg.control,
+               method = "glm",
+               family=binomial())
 
-# Logistic Regression 
+summary(lreg.cv)
+lreg.best <- lreg.cv$finalModel
+lreg.best
 
+pred4 <- predict(lreg.cv, test, type = "raw")
+lreg_acc <- Accuracy(pred4,test$y)
+lreg_con <- table(predict=pred4,actual=(test$y))
 
 # Decision Tree
 print('Decision Tree')
@@ -309,6 +341,9 @@ summary(tune.out)
 g1 <- ggplot(test, aes(x1,x2,colour=y)) +
   geom_point() +
   ggtitle("True Classes")
+g2 <- ggplot(test, aes(x1,x2,colour=pred4)) +
+  geom_point() +
+  ggtitle("Logistic Regression")
 g3 <- ggplot(test, aes(x1,x2,colour=pred5)) +
   geom_point() +
   ggtitle("CV Decision Tree Preds")
@@ -316,13 +351,13 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
   geom_point() + 
   ggtitle("SVM, CV'd, cost=1, gamma=0.5")
 
-grid.arrange(g1,g3,g4,ncol=2)
+grid.arrange(g1,g2,g3,g4,ncol=2)
 
-#sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
+sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
 
-#lreg_con
+lreg_con
 dtree_con
 svm_con
 
@@ -386,11 +421,6 @@ print("Decision Tree was the least biased has it had two false negatives for Cla
 
 ```{r}
 ## Question 1.4 for Varied Data
-set.seed(112)
-
-
-# Logistic Regression 
-
 
 # Decision Tree
 print('Decision Tree')
@@ -440,12 +470,10 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred6)) +
   ggtitle("SVM, CV'd, cost=1, gamma=0.5")
 
 grid.arrange(g1,g3,g4,ncol=2)
-
-#sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
+ 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
 
-#lreg_con
 dtree_con
 svm_con
 ```
