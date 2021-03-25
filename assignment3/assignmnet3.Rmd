@@ -111,11 +111,11 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred3)) +
   ggtitle("SVM Preds")
 
 grid.arrange(g1,g2,g3,g4,ncol=2)
-print('Looking at the four plots, we can see that Logisitc Regression has 
+print('Looking at the four plots, we can see that Logistic Regression has 
       the most misclassifications and that Decision Tree performs pretty well, 
       but not as well as SVM which seems to perform the best.')
 
-sprintf("Logisitc Regression Accuracy: %f", lreg_acc) 
+sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
 print("In terms of accuracy, SVM has the highest and Decision Tree was second highest. 
@@ -212,6 +212,12 @@ svm_con
 
 
 ```
+When Cross Validation was added, SVM still has the highest accuracy, and
+Logistic regression still has the lowest. The accuracy for all is very similar to the previous result
+
+For bias, SVM was the least biased out of the three as it had zero False Positive (FP) and 2 False Negatives (FN). Decision Tree has 4 FP and 2 FN and Logistics Regression has 12 FP and 12 FN.
+
+Overall, the accuracy results appear the same as they were without CV, except for SVM which performed slightly worse.
 
 \pagebreak
 ### Questions 1.2-1.4 for Circle Data
@@ -363,6 +369,12 @@ svm_con
 
 
 ```
+When Cross Validation was added, SVM still has the highest accuracy, and
+Logistic regression still has the lowest at only 50.6%. The accuracy for all is very similar to the previous result.
+
+For bias, SVM was the least biased out of the three with 7 False Positive (FP) and 6 False Negatives (FN). Decision Tree has 33 FP and 14 FN and Logistics Regression has 202 FP and 45 FN, indicating that it was overall more likely to predict 1 instead of 0.
+
+The accuracy of SVM improved slightly with CV, while Decision Tree performed slightly worse.
 
 \pagebreak
 ### Questions 1.2-1.4 for Varied Data
@@ -477,6 +489,9 @@ sprintf("SVM Accuracy: %f", svm_acc)
 dtree_con
 svm_con
 ```
+When Cross Validation was added, both models have high accuracy, with decision tree slightly higher than SVM. Bias was very low for both models.
+
+The accuracy is identical to before CV was added.
 
 \pagebreak
 ## Question 2: Tree-based methods
