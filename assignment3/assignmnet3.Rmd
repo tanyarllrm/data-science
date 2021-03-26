@@ -626,7 +626,7 @@ train.hitters26 <- hitters.26[ train_inds26, ]
 test.hitters26  <- hitters.26[-train_inds26, ]
 
 # 2
-m <- ceiling(sqrt(ncol(train.hitters)))
+m <- ceiling((ncol(train.hitters)-1)/3)
 hitters.forest <- randomForest(Salary ~ . , data = train.hitters, mtry = m, importance=T)
 plot(hitters.forest)
 
