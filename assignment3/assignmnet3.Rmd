@@ -500,9 +500,14 @@ The accuracy is identical to before CV was added.
 ```{r}
 # 1
 library("ISLR")
-hitters <- Hitters
+completeRows <- complete.cases(Hitters)
+hitters <- Hitters[completeRows,]
 hitters$Salary <- log(hitters$Salary) # Q2 (Converted to log before dataset is split)
-heart <- read.csv("data/Heart.csv")[-1] # Q3 (removed row identifier)
+
+Heart <- read.csv("data/Heart.csv")[-1] # Q3 (removed row identifier)
+completeHeartRows <- complete.cases(Heart)
+heart <- Heart[completeHeartRows, ]
+heart$AHD <- as.factor(heart$AHD)
 
 set.seed(112)
 train_inds <- sample(1:nrow(hitters), floor(nrow(hitters)*0.7))
@@ -532,8 +537,11 @@ print("Based on the decision tree, the output is the node labelled 7.
       The player's salary should be around 6.7")
 
 # 4
-preds2.2 <- predict(dtree_hitters,type="vector")
+preds2.2 <- predict(dtree_hitters,test.hitters, type="vector")
 RMSE(preds2.2,test.hitters$Salary)
+preds2.2[0:4]
+
+sum((test.hitters$Salary - preds2.2)^2)
 
 ```
 
@@ -548,27 +556,89 @@ dtree_heart <- rpart(AHD ~ ., data=train.heart)
 fancyRpartPlot(dtree_heart, caption ="")
 
 # 3
-preds2.3 <- predict(dtree_heart,type="class")
+preds2.3 <- predict(dtree_heart,test.heart, type="class")
 accuracy <- Accuracy(preds2.3,test.heart$AHD)
 accuracy
 
 # 4
-conf <- ConfusionMatrix(preds2.3, heart$AHD)
+conf <- ConfusionMatrix(preds2.3, test.heart$AHD)
 conf
 
 ```
 
 ### 2.4. Bagging: Regression 
 ```{r}
+library(randomForest)
+library(apricom)
+set.seed(112)
+
 # 1
+print("Filtering out the NA values is done in the pre-processing step")
+
+# 2
+hitters.bag <- randomForest(Salary ~ . , data = train.hitters,mtry = ncol(train.hitters)-1)
+plot(hitters.bag)
+
+# 3
+preds.hittersBag <- predict(hitters.bag,test.hitters)
+preds.hittersBag[0:4]
+
+# 4
+sse.bagging <- sum((test.hitters$Salary - preds.hittersBag)^2)
+sse.bagging
+
+# 5
+print("The SSE from bagging is 25.48093 and is lower than the SSE from regression tree which is 32.9608 ")
 ```
 
 ### Question 2.5. Bagging: Classification
 ```{r}
+set.seed(112)
+
 # 1
+print("Filtering out the NA values is done in the pre-processing step")
+
+# 2
+heart.bag <- randomForest(AHD ~ . , data = train.heart)
+plot(heart.bag)
+
+# 3
+preds.heartBag <- predict(heart.bag, test.heart, type = "class")
+preds.heartBag[0:4]
+
+# 4
+Accuracy(preds.heartBag,test.heart$AHD) 
+ConfusionMatrix(preds.heartBag, test.heart$AHD)
+
+# 5
+print("The accuracy from bagging is 88.89% which is higher than the accuracy 
+      from classification tree which is 87.78%")
 ```
 
 ### Question 2.6. Random Forest: Regression
 ```{r}
+set.seed(21)
+
 # 1
+hitters.26 <- na.roughfix(Hitters)
+train_inds26 <- sample(1:nrow(hitters.26), floor(nrow(hitters.26)*0.7))
+train.hitters26 <- hitters.26[ train_inds26, ]
+test.hitters26  <- hitters.26[-train_inds26, ]
+
+# 2
+m <- ceiling(sqrt(ncol(train.hitters)))
+hitters.forest <- randomForest(Salary ~ . , data = train.hitters, mtry = m, importance=T)
+plot(hitters.forest)
+
+# 3
+preds.hittersForest <- predict(hitters.forest,test.hitters)
+preds.hittersForest[0:4]
+
+# 4
+sse.forest <- sum((test.hitters$Salary - preds.hittersForest)^2)
+sse.forest
+
+# 5
+print("The SSE from the random forest is 22.74008 which is lower than both the SSE from bagging (which is 25.48093) and the SSE from regression tree (which is 32.9608)")
+
 ```
