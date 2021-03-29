@@ -42,7 +42,7 @@ varied <- read.csv("data/varied.csv")[,-1]
 ```
 
 
-### Question 1.1: Preprocess and Plot
+### 1.1: Preprocess and Plot
 ```{r}
 croissant$y <- as.factor(croissant$y)
 circles$y <- as.factor(circles$y)
@@ -62,7 +62,7 @@ grid.arrange(cro, cir, var, ncol=2)
 ```
 
 \pagebreak
-### Questions 1.2-1.4 for Croissant Data
+### 1.2-1.4 for Croissant Data
 ```{r}
 ## Question 1.2
 set.seed(112)
@@ -84,7 +84,7 @@ lreg_acc <- mean(pred1 == (test$y==1))
 lreg_con <- table(predict=pred1,actual=(test$y))
 
 # Decision Tree
-dtree <- rpart(y~., data=train)
+dtree <- tree(y~., data=train)
 pred2 <- predict(dtree, as.data.frame(x.test), type = "class")
 dtree_acc <- Accuracy(pred2,test$y)
 dtree_con <- table(predict=pred2,actual=(test$y))
@@ -112,23 +112,23 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred3)) +
 
 grid.arrange(g1,g2,g3,g4,ncol=2)
 print('Looking at the four plots, we can see that Logistic Regression has 
-      the most misclassifications and that Decision Tree performs pretty well, 
-      but not as well as SVM which seems to perform the best.')
+      the most misclassifications and that Decision Tree performs as well as SVM.')
 
 sprintf("Logistic Regression Accuracy: %f", lreg_acc) 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
-print("In terms of accuracy, SVM has the highest and Decision Tree was second highest. 
-      Logistic Regression has the lowest out of the three.")
+print("In terms of accuracy, SVM and Decision Tree are the highest. 
+      Logistic Regression is the lowest out of the three.")
 
 lreg_con
 dtree_con
 svm_con
-print("SVM was the least biased out of the three as it had zero False Positive (FP) and 
-      one False Negatives (FN). Decision Tree has 4 FP and 2 FN and Logistics Regression
-      has 12 FP and FN.")
-
 ```
+
+SVM and Decision Tree are the least biased as they both only have one misclassification.
+SVM has zero False Positive (FP) and one False Negatives (FN). 
+Decision Tree has 1 FP and 0 FN and Logistic Regression has 12 FP and FN.
+
 ```{r}
 ## Question 1.4 for Croissant Data
 
@@ -142,9 +142,9 @@ lreg.cv <- train(y ~ .,
                method = "glm",
                family=binomial())
 
-summary(lreg.cv)
+# summary(lreg.cv)
 lreg.best <- lreg.cv$finalModel
-lreg.best
+# lreg.best
 
 pred4 <- predict(lreg.cv, test, type = "raw")
 lreg_acc <- Accuracy(pred4,test$y)
@@ -162,9 +162,9 @@ dtree.cv <- train(y ~ .,
                   trControl = dtree.control,
                   tuneLength = 15)
 
-summary(dtree.cv)
+# summary(dtree.cv)
 dtree.best <- dtree.cv$finalModel
-dtree.best
+# dtree.best
 
 pred5 <- predict(dtree.cv, test, type = "raw")
 dtree_acc <- Accuracy(pred5,test$y)
@@ -183,7 +183,7 @@ print('We chose radial as the kernel as it best fits the shape of the data
 svm_acc <- Accuracy(pred6,test$y)
 svm_con <- table(predict=pred6,actual=(test$y))
 
-summary(tune.out)
+# summary(tune.out)
 
 
 g1 <- ggplot(test, aes(x1,x2,colour=y)) +
@@ -209,18 +209,15 @@ sprintf("SVM Accuracy: %f", svm_acc)
 lreg_con
 dtree_con
 svm_con
-
-
 ```
-When Cross Validation was added, SVM still has the highest accuracy, and
-Logistic regression still has the lowest. The accuracy for all is very similar to the previous result
+When Cross Validation was added, SVM has the highest accuracy, and Logistic regression still has the lowest. The accuracy for SVM and Decision Tree however got a little worse compared to 1.3.
 
 For bias, SVM was the least biased out of the three as it had zero False Positive (FP) and 2 False Negatives (FN). Decision Tree has 4 FP and 2 FN and Logistics Regression has 12 FP and 12 FN.
 
-Overall, the accuracy results appear the same as they were without CV, except for SVM which performed slightly worse.
+Overall, the results appear slightly worse after performing CV for SVM and Decision Tree.
 
 \pagebreak
-### Questions 1.2-1.4 for Circle Data
+### 1.2-1.4 for Circle Data
 ```{r}
 ## Question 1.2
 set.seed(112)
@@ -242,7 +239,7 @@ lreg_acc <- mean(pred1 == (test$y==1))
 lreg_con <- table(predict=pred1,actual=(test$y))
 
 # Decision Tree
-dtree <- rpart(y~., data=train)
+dtree <- tree(y~., data=train)
 pred2 <- predict(dtree, as.data.frame(x.test), type = "class")
 dtree_acc <- Accuracy(pred2,test$y)
 dtree_con <- table(predict=pred2,actual=(test$y))
@@ -270,8 +267,8 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred3)) +
 
 grid.arrange(g1,g2,g3,g4,ncol=2)
 print('Looking at the four plots, we can see that Logisitc Regression has 
-      a lot misclassifications and that Decision Tree performs well, but has noticeable 
-      misflassications. Again SVM seems to perform the best.')
+      a lot of misclassifications and that Decision Tree performs well, but has noticeable 
+      misflassications. SVM seems to perform the best.')
 
 sprintf("Logisitc Regression Accuracy: %f", lreg_acc) 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
@@ -282,10 +279,10 @@ print("In terms of accuracy, SVM has the highest and Decision Tree was second hi
 lreg_con
 dtree_con
 svm_con
-print("SVM was the least biased out of the three as it had 7 False Positives (FP) and 
-      7 False Negatives (FN). Decision Tree has 27 FP and 18 FN and Logistic Regression
-      has 202 FP and 45 FN.")
 ```
+
+SVM was the least biased out of the three as it had 7 False Positives (FP) and 7 False Negatives (FN). Decision Tree has 24 FP and 28 FN and Logistic Regression has 202 FP and 45 FN.
+      
 ```{r}
 ## Question 1.4 for Circles Data
 
@@ -299,9 +296,9 @@ lreg.cv <- train(y ~ .,
                method = "glm",
                family=binomial())
 
-summary(lreg.cv)
+# summary(lreg.cv)
 lreg.best <- lreg.cv$finalModel
-lreg.best
+# lreg.best
 
 pred4 <- predict(lreg.cv, test, type = "raw")
 lreg_acc <- Accuracy(pred4,test$y)
@@ -319,9 +316,9 @@ dtree.cv <- train(y ~ .,
                   trControl = caret.control,
                   tuneLength = 15)
 
-dtree.cv
+# dtree.cv
 dtree.best <- dtree.cv$finalModel
-dtree.best
+# dtree.best
 
 pred5 <- predict(dtree.cv, test, type = "raw")
 dtree_acc <- Accuracy(pred5,test$y)
@@ -341,7 +338,7 @@ print('We chose radial as the kernel as it best fits the shape of the data
 svm_acc <- Accuracy(pred6,test$y)
 svm_con <- table(predict=pred6,actual=(test$y))
 
-summary(tune.out)
+# summary(tune.out)
 
 
 g1 <- ggplot(test, aes(x1,x2,colour=y)) +
@@ -366,18 +363,13 @@ sprintf("SVM Accuracy: %f", svm_acc)
 lreg_con
 dtree_con
 svm_con
-
-
 ```
-When Cross Validation was added, SVM still has the highest accuracy, and
-Logistic regression still has the lowest at only 50.6%. The accuracy for all is very similar to the previous result.
+When Cross Validation was added, the accuracy for SVM and Decision Tree slightly improved. SVM has the highest accuracy, and Logistic regression still has the lowest at only 50.6%.
 
-For bias, SVM was the least biased out of the three with 7 False Positive (FP) and 6 False Negatives (FN). Decision Tree has 33 FP and 14 FN and Logistics Regression has 202 FP and 45 FN, indicating that it was overall more likely to predict 1 instead of 0.
-
-The accuracy of SVM improved slightly with CV, while Decision Tree performed slightly worse.
+For bias, SVM was the least biased out of the three with 7 False Positive (FP) and 6 False Negatives (FN). Decision Tree has 33 FP and 14 FN and Logistic Regression has 202 FP and 45 FN, indicating that it was overall more likely to predict 1 instead of 0.
 
 \pagebreak
-### Questions 1.2-1.4 for Varied Data
+### 1.2-1.4 for Varied Data
 ```{r}
 ## Question 1.2
 set.seed(112)
@@ -393,7 +385,7 @@ x.test  <- model.matrix(y ~ .,test)[,-1]
 ## Question 1.3
 
 # Decision Tree
-dtree <- rpart(y~., data=train)
+dtree <- tree(y~., data=train)
 pred2 <- predict(dtree, as.data.frame(x.test), type = "class")
 dtree_acc <- Accuracy(pred2,test$y)
 dtree_con <- table(predict=pred2,actual=(test$y))
@@ -417,9 +409,7 @@ g4 <- ggplot(test, aes(x1,x2,colour=pred3)) +
   ggtitle("SVM Preds")
 
 grid.arrange(g1,g3,g4,ncol=2)
-print('Looking at the three plots, we can see that Logisitc Regression has 
-      a lot misclassifications and that Decision Tree performs well, but has noticeable 
-      misflassications. Again SVM seems to perform the best.')
+print('Looking at the three plots, Decision Tree and SVM seem to perform equally well.')
 
 sprintf("Decision Tree Accuracy: %f", dtree_acc)
 sprintf("SVM Accuracy: %f", svm_acc)
@@ -427,9 +417,10 @@ print("In terms of accuracy, Decision Tree performed a little bit better than SV
 
 dtree_con
 svm_con
-print("Decision Tree was the least biased has it had two false negatives for Class 2.
-      SVM had 3 false positives for Class 1.")
 ```
+
+Decision Tree was the least biased has it had two false negatives for Class 2.
+SVM had 3 false positives for Class 1.
 
 ```{r}
 ## Question 1.4 for Varied Data
@@ -446,9 +437,9 @@ dtree.cv <- train(y ~ .,
                   trControl = caret.control,
                   tuneLength = 15)
 
-dtree.cv
+# dtree.cv
 dtree.best <- dtree.cv$finalModel
-dtree.best
+# dtree.best
 
 pred5 <- predict(dtree.cv, test, type = "raw")
 dtree_acc <- Accuracy(pred5,test$y)
@@ -468,7 +459,7 @@ print('We chose radial as the kernel as it best fits the shape of the data
 svm_acc <- Accuracy(pred6,test$y)
 svm_con <- table(predict=pred6,actual=(test$y))
 
-summary(tune.out)
+# summary(tune.out)
 
 
 g1 <- ggplot(test, aes(x1,x2,colour=y)) +
@@ -489,9 +480,9 @@ sprintf("SVM Accuracy: %f", svm_acc)
 dtree_con
 svm_con
 ```
-When Cross Validation was added, both models have high accuracy, with decision tree slightly higher than SVM. Bias was very low for both models.
+When Cross Validation was added, both models have high accuracy, with decision tree slightly higher than SVM. The accuracy is identical to before CV was performed.
 
-The accuracy is identical to before CV was added.
+The bias results are also identical to before CV was performed.
 
 \pagebreak
 ## Question 2: Tree-based methods
@@ -592,7 +583,7 @@ print("The SSE from bagging is 25.48093 and is lower than the SSE from
       regression tree which is 32.9608 ")
 ```
 
-### Question 2.5. Bagging: Classification
+### 2.5. Bagging: Classification
 ```{r}
 set.seed(112)
 
@@ -617,7 +608,7 @@ print("The accuracy from bagging is 88.89% which is higher than the accuracy
       from classification tree which is 87.78%")
 ```
 
-### Question 2.6. Random Forest: Regression
+### 2.6. Random Forest: Regression
 ```{r}
 set.seed(21)
 
