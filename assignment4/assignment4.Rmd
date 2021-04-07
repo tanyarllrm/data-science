@@ -42,13 +42,10 @@ dim(x_test)
 ### 1.2: Plot
 ```{r}
 par(pty="s") # for keeping the aspect ratio 1:1
-
 trouser <- x_train[107,28:1,1:28]
 image(t(trouser), col = gray.colors(256), axes = FALSE)
-
 bag <- x_train[213,28:1,1:28]
 image(t(bag), col = gray.colors(256), axes = FALSE)
-
 boot <- x_train[1,28:1,1:28]
 image(t(boot), col = gray.colors(256), axes = FALSE)
 ```
@@ -72,7 +69,7 @@ y_test  <- to_categorical(y_test, 10)
 
 ```
 
-### 1.4: Fit a Deep Neural Network
+### 1.5: Fit a Deep Neural Network
 ```{r}
 
 ```
