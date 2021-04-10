@@ -1,5 +1,5 @@
 ---
-title: 'Lab Report 3'
+title: 'Lab Report 4'
 author: "By: Abhishek Shah, Ravi Seth, Tanya Ralliaram"
 geometry: margin=.75in
 output:
@@ -60,6 +60,7 @@ x_test <- array_reshape(x_test, c(nrow(x_test), 784))
 x_train <- x_train / 255
 x_test <- x_test / 255
 
+# categorical
 y_train <- to_categorical(y_train, 10)
 y_test  <- to_categorical(y_test, 10)
 ```
